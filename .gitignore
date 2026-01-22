@@ -1,0 +1,248 @@
+################################
+# Python & Virtual Environments
+################################
+
+# Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Python Build
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv
+.env
+venv.bak/
+env.bak/
+
+# Package Manager
+.poetry.lock
+poetry.lock
+
+################################
+# Testing & Coverage
+################################
+
+# pytest
+.pytest_cache/
+.tox/
+*.cover
+.hypothesis/
+
+# Coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+coverage-report/
+
+# Allure Reports
+allure-results/
+allure-report/
+
+################################
+# IDE & Editor
+################################
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+.history/
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode-settings/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.vim/
+
+# Editor Backups
+*.bak
+*.backup
+
+################################
+# OS & System Files
+################################
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+.Trash-*
+
+################################
+# Project Specific
+################################
+
+# SonarQube/SonarCloud
+.sonarcloud.properties
+.scannerwork/
+sonar-scanner.properties
+
+# Security & Credentials
+.env.local
+.env.*.local
+.credentials
+*.pem
+*.key
+*.p12
+secrets/
+
+# Build Artifacts
+dist/
+build/
+*.tar.gz
+*.zip
+
+# Logs
+*.log
+logs/
+log/
+
+################################
+# Dependencies (optional)
+################################
+
+# If using Poetry
+poetry.lock
+
+# If using Pipenv
+Pipfile.lock
+
+# If using PipEnv
+.pipenv
+
+################################
+# Local Development
+################################
+
+# Local configuration
+local_settings.py
+.local/
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+
+# Node (for Allure CLI, etc)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+################################
+# Database (if applicable)
+################################
+
+*.db
+*.sqlite
+*.sqlite3
+*.pgsql
+
+################################
+# IDE Generated Files
+################################
+
+# PyCharm
+.idea/
+*.pyc
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# pylint
+.pylintrc
+.pylint.d/
+
+################################
+# Static Type Checking
+################################
+
+.mypy_cache/
+.pytype/
+
+################################
+# Performance Profiling
+################################
+
+.profile/
+prof_output/
+
+################################
+# GitHub Specific
+################################
+
+# GitHub Actions artifacts (optional - uncomment if needed)
+# artifacts/
+
+################################
+# Documentation
+################################
+
+# Sphinx build directory (if using Sphinx)
+docs/_build/
+
+################################
+# Miscellaneous
+################################
+
+# System files
+*.DS_Store
+.AppleDouble
+.LSOverride
+
+# Project-specific
+*.orig
+*.rej
+.vagrant/
+.bundle/
