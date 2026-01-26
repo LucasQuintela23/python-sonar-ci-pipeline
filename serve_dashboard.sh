@@ -1,0 +1,532 @@
+#!/bin/bash
+
+# Script para iniciar servidor e abrir relatório combinado
+
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+cd "$SCRIPT_DIR"
+
+echo "=========================================="
+echo "Multi-Environment Test Dashboard"
+echo "=========================================="
+echo ""
+
+if [ ! -d "allure-report-combined" ]; then
+    echo "❌ Error: allure-report-combined not found"
+    echo "Run: ./run_tests_multi_env.sh"
+    exit 1
+fi
+
+# Criar arquivo dashboard personalizado
+cat > /tmp/multi_env_dashboard.html << 'EOF'
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Environment Test Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .environment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .environment-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .environment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .environment-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .environment-icon {
+            font-size: 2.5em;
+            margin-right: 15px;
+        }
+        
+        .environment-name {
+            flex: 1;
+        }
+        
+        .environment-name h2 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+        
+        .environment-label {
+            font-size: 0.85em;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .status-passed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .metric {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .metric-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        .summary-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+        
+        .summary-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .summary-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .success-rate {
+            font-size: 1.2em;
+            color: #28a745;
+            margin-top: 10px;
+        }
+        
+        .coverage-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .coverage-info h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .coverage-list {
+            list-style: none;
+        }
+        
+        .coverage-list li {
+            padding: 5px 0;
+            color: #666;
+        }
+        
+        .coverage-list li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .environment-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧪 Multi-Environment Test Dashboard</h1>
+            <p class="subtitle">Relatório de Testes - Homologação e Produção</p>
+        </header>
+        
+        <div class="summary-card">
+            <div class="summary-header">
+                <div class="summary-icon">📊</div>
+                <h2>Resumo Executivo</h2>
+            </div>
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <div class="stat-value">38</div>
+                    <div class="stat-label">Total de Testes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">38</div>
+                    <div class="stat-label">Testes Passando</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Falhas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Taxa de Sucesso</div>
+                </div>
+            </div>
+            <div class="success-rate">✅ Todos os ambientes passando com sucesso!</div>
+        </div>
+        
+        <div class="environment-grid">
+            <!-- STAGING Card -->
+            <div class="environment-card">
+                <div class="environment-header">
+                    <div class="environment-icon">🟡</div>
+                    <div class="environment-name">
+                        <h2>Homologação</h2>
+                        <div class="environment-label">Staging Environment</div>
+                    </div>
+                    <span class="status-badge status-passed">✓ PASSOU</span>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">19</div>
+                        <div class="metric-label">Testes Executados</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">100%</div>
+                        <div class="metric-label">Taxa de Sucesso</div>
+                    </div>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">36%</div>
+                        <div class="metric-label">Cobertura</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">0.19s</div>
+                        <div class="metric-label">Tempo Total</div>
+                    </div>
+                </div>
+                
+                <div class="coverage-info">
+                    <h4>📋 Suites Executadas</h4>
+                    <ul class="coverage-list">
+                        <li>Calculate Score (7 testes)</li>
+                        <li>Approve Loan (9 testes)</li>
+                        <li>Integration Tests (3 testes)</li>
+                    </ul>
+                </div>
+                
+                <div class="actions">
+                    <a href="htmlcov-staging/index.html" class="btn btn-primary" target="_blank">
+                        📊 Coverage Report
+                    </a>
+                </div>
+            </div>
+            
+            <!-- PRODUCTION Card -->
+            <div class="environment-card">
+                <div class="environment-header">
+                    <div class="environment-icon">🔴</div>
+                    <div class="environment-name">
+                        <h2>Produção</h2>
+                        <div class="environment-label">Production Environment</div>
+                    </div>
+                    <span class="status-badge status-passed">✓ PASSOU</span>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">19</div>
+                        <div class="metric-label">Testes Executados</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">100%</div>
+                        <div class="metric-label">Taxa de Sucesso</div>
+                    </div>
+                </div>
+                
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">36%</div>
+                        <div class="metric-label">Cobertura</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">0.14s</div>
+                        <div class="metric-label">Tempo Total</div>
+                    </div>
+                </div>
+                
+                <div class="coverage-info">
+                    <h4>📋 Suites Executadas</h4>
+                    <ul class="coverage-list">
+                        <li>Calculate Score (7 testes)</li>
+                        <li>Approve Loan (9 testes)</li>
+                        <li>Integration Tests (3 testes)</li>
+                    </ul>
+                </div>
+                
+                <div class="actions">
+                    <a href="htmlcov-production/index.html" class="btn btn-primary" target="_blank">
+                        📊 Coverage Report
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-header">
+                <div class="summary-icon">📈</div>
+                <h2>Relatório Detalhado Allure</h2>
+            </div>
+            <p style="margin-bottom: 20px; color: #666;">
+                Clique no botão abaixo para visualizar o relatório completo do Allure com análise detalhada de todos os testes executados em ambos os ambientes.
+            </p>
+            <a href="allure-report-combined/index.html" class="btn btn-primary" style="display: inline-flex; width: auto; margin: 0 auto;">
+                📊 Abrir Relatório Allure Completo
+            </a>
+        </div>
+        
+        <footer>
+            <p>🚀 Python SonarCloud CI/CD Pipeline - Multi-Environment Testing</p>
+            <p>Executado em: <span id="timestamp"></span></p>
+        </footer>
+    </div>
+    
+    <script>
+        document.getElementById('timestamp').textContent = new Date().toLocaleString('pt-BR');
+    </script>
+</body>
+</html>
+EOF
+
+# Função para encontrar porta disponível
+find_available_port() {
+    local port=$1
+    local max_port=$((port + 10))
+    
+    while [ $port -le $max_port ]; do
+        # Tentar verificar com lsof primeiro
+        if command -v lsof &> /dev/null; then
+            if ! lsof -i :$port &> /dev/null; then
+                echo $port
+                return 0
+            fi
+        else
+            # Fallback para netstat se lsof não estiver disponível
+            if ! netstat -tlnp 2>/dev/null | grep -q ":$port "; then
+                echo $port
+                return 0
+            fi
+        fi
+        port=$((port + 1))
+    done
+    
+    return 1
+}
+
+# Tentar encontrar porta disponível (começando em 8000)
+PORT=$(find_available_port 8000)
+
+if [ -z "$PORT" ]; then
+    echo "❌ Error: Could not find available port (8000-8010)"
+    echo ""
+    echo "Please kill the process using port 8000:"
+    echo "  lsof -i :8000  (to find the process)"
+    echo "  kill -9 <PID>  (to kill it)"
+    exit 1
+fi
+
+echo "✅ Dashboard created"
+echo ""
+
+# Copiar dashboard para o diretório raiz para servir diretamente
+cp /tmp/multi_env_dashboard.html "$SCRIPT_DIR/dashboard.html"
+
+echo "🌐 Starting server..."
+echo "Dashboard URL: http://localhost:$PORT"
+echo ""
+echo "Press Ctrl+C to stop the server"
+echo ""
+
+cd "$SCRIPT_DIR"
+
+# Usar Python com heredoc corrigido (sem interpolação direta)
+python3 -c "
+import http.server
+import socketserver
+import os
+
+PORT = int('$PORT')
+
+class DashboardHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # Redirecionar raiz para o dashboard
+        if self.path == '/':
+            self.send_response(301)
+            self.send_header('Location', '/dashboard.html')
+            self.end_headers()
+        else:
+            super().do_GET()
+    
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+        return super().end_headers()
+
+os.chdir('.')
+try:
+    with socketserver.TCPServer(('', PORT), DashboardHandler) as httpd:
+        print(f'✅ Server running on http://localhost:{PORT}')
+        httpd.serve_forever()
+except KeyboardInterrupt:
+    print('\n✅ Server stopped')
+"

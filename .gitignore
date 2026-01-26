@@ -57,11 +57,19 @@ poetry.lock
 .coverage.*
 coverage.xml
 htmlcov/
+htmlcov-staging/
+htmlcov-production/
 coverage-report/
 
 # Allure Reports
 allure-results/
+allure-results-combined/
 allure-report/
+allure-report-combined/
+
+# Test Reports
+reports/
+junit.xml
 
 ################################
 # IDE & Editor
@@ -123,6 +131,14 @@ Desktop.ini
 .sonarcloud.properties
 .scannerwork/
 sonar-scanner.properties
+
+# Script outputs
+*.log
+run.log
+
+# Multi-environment test artifacts
+allure-results-multi/
+coverage-multi/
 
 # Security & Credentials
 .env.local

@@ -1,33 +1,38 @@
 # 🚀 Quick Reference Card
 
-## Comandos Mais Usados
+## 🎯 Fluxo Principal - Testes Multi-Ambiente
 
-### 🧪 Testes
+### Passo 1: Executar Testes (Staging + Production)
 ```bash
-./run_tests.sh                    # Tudo em um comando ⭐
-pytest                            # Rodar testes
-pytest -v                         # Verbose
-pytest -k "calculate_score"       # Teste específico
+./run_tests_multi_env.sh        # Executa testes em 2 ambientes ⭐⭐⭐
 ```
 
-### 📊 Relatórios
-```bash
-allure open allure-report         # Abrir Allure (navegador)
-open htmlcov/index.html           # Abrir Coverage
-cat coverage.xml                  # Ver XML do Coverage
+Resultado:
+```
+✅ 19 testes STAGING (Homologação)
+✅ 19 testes PRODUCTION (Produção)
+✅ Relatórios combinados no Allure
 ```
 
-### 🔍 SonarCloud
-```bash
-./analyze_with_sonar.sh TOKEN     # Análise local
-cat sonar-project.properties      # Ver configuração
-```
+---
 
-### 📁 Estrutura
+### Passo 2: Visualizar Resultados
+
+#### Opção A: Dashboard Visual (Recomendado) 🎨
 ```bash
-tree -L 2 -I 'venv|__pycache__'   # Ver estrutura
-ls -la src/                       # Ver código
-ls -la tests/                     # Ver testes
+./serve_dashboard.sh            # Interface bonita e intuitiva ⭐⭐
+```
+Acesso automático na primeira porta disponível (8000+)
+
+#### Opção B: Allure Report Completo 📋
+```bash
+./serve_combined_allure.sh      # Relatório interativo detalhado
+```
+Acesse: `http://localhost:7071`
+
+---
+
+## 📊 Comandos Úteis
 ```
 
 ---
