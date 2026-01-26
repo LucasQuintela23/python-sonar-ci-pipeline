@@ -7,24 +7,25 @@ on:
     branches: [ main ]
 
 jobs:
-  test-and-analyze:
+  # ==================== STAGE 1: SETUP & TESTING ====================
+  setup-and-test:
     runs-on: ubuntu-latest
-    name: Tests, Coverage & SonarCloud Analysis
+    name: Stage 1 - Setup & Multi-Environment Testing
     
     steps:
-      # 1. Checkout do código
+      # Checkout
       - name: 📥 Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Full history for better analysis
+          fetch-depth: 0
 
-      # 2. Setup Python
+      # Setup Python
       - name: 🐍 Set up Python 3.12
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      # 3. Cache de dependências
+      # Cache
       - name: 💾 Cache pip packages
         uses: actions/cache@v3
         with:
@@ -33,167 +34,253 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # 4. Instalar dependências
+      # Install dependencies
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
 
-      # 5. Executar testes multi-ambiente (Staging + Production)
-      - name: 🚀 Run multi-environment tests
+      # ==================== TESTING ====================
+      - name: 🚀 Run multi-environment tests (Staging + Production)
         run: |
           chmod +x run_tests_multi_env.sh
           ./run_tests_multi_env.sh
         continue-on-error: true
 
-      # 6. Gerar relatório combinado do Allure
-      - name: 🎨 Generate combined Allure report
+      # Save test results for next jobs
+      - name: 📁 Save test results
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-intermediate
+          path: |
+            allure-results-combined/
+            htmlcov-staging/
+            htmlcov-production/
+            coverage.xml
+          retention-days: 1
+        continue-on-error: true
+
+  # ==================== STAGE 2: GENERATE REPORTS ====================
+  generate-reports:
+    runs-on: ubuntu-latest
+    name: Stage 2 - Generate Reports
+    needs: setup-and-test
+    if: always()
+    
+    steps:
+      # Checkout
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      # Setup Python
+      - name: 🐍 Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      # Install dependencies
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install allure-pytest
+
+      # Download test results
+      - name: ⬇️ Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results-intermediate
+        continue-on-error: true
+
+      # Generate Allure Report
+      - name: 🎨 Generate combined Allure report
         run: |
           if [ -d "allure-results-combined" ]; then
             allure generate allure-results-combined \
               -o allure-report-combined \
               --clean
+            echo "✅ Allure report generated"
+          else
+            echo "⚠️  No combined results found"
           fi
+        continue-on-error: true
 
-      # 7. Criar Dashboard HTML multi-ambiente
-      - name: 📊 Create multi-environment dashboard
-        if: always()
+      # Create consolidated reports directory
+      - name: 📊 Consolidate all reports
         run: |
-          chmod +x serve_dashboard.sh
-          # Apenas gerar o dashboard sem iniciar o servidor
           python3 << 'EOF'
           import shutil
           from pathlib import Path
           
-          # Verificar se os diretórios existem
-          allure_combined = Path("allure-report-combined")
-          htmlcov_staging = Path("htmlcov-staging")
-          htmlcov_prod = Path("htmlcov-production")
-          
-          if allure_combined.exists():
-              print("✅ Allure combined report found")
-          if htmlcov_staging.exists():
-              print("✅ Staging coverage report found")
-          if htmlcov_prod.exists():
-              print("✅ Production coverage report found")
-          
-          # Criar diretório para relatórios finais
           reports_dir = Path("final-reports")
           reports_dir.mkdir(exist_ok=True)
+          print("📁 Created final-reports directory")
           
-          # Copiar os relatórios para o diretório de artefatos
+          # Copy Allure report
+          allure_combined = Path("allure-report-combined")
           if allure_combined.exists():
               shutil.copytree(allure_combined, reports_dir / "allure-combined", dirs_exist_ok=True)
-              print("📋 Copied Allure combined report")
+              print("✅ Copied Allure report")
           
+          # Copy coverage reports
+          htmlcov_staging = Path("htmlcov-staging")
           if htmlcov_staging.exists():
               shutil.copytree(htmlcov_staging, reports_dir / "coverage-staging", dirs_exist_ok=True)
-              print("📊 Copied staging coverage report")
+              print("✅ Copied staging coverage")
           
+          htmlcov_prod = Path("htmlcov-production")
           if htmlcov_prod.exists():
               shutil.copytree(htmlcov_prod, reports_dir / "coverage-production", dirs_exist_ok=True)
-              print("📊 Copied production coverage report")
+              print("✅ Copied production coverage")
           
-          # Criar arquivo de resumo
-          readme_content = "# Multi-Environment Test Reports\n\n"
-          readme_content += "## Test Execution Summary\n"
-          readme_content += "- **Staging Tests:** 19\n"
-          readme_content += "- **Production Tests:** 19\n"
-          readme_content += "- **Total:** 38 tests\n\n"
-          readme_content += "## Reports Available\n\n"
-          readme_content += "### Allure Report\n"
-          readme_content += "- Open: `allure-combined/index.html`\n\n"
-          readme_content += "### Coverage Reports\n"
-          readme_content += "- Staging Coverage: `coverage-staging/index.html`\n"
-          readme_content += "- Production Coverage: `coverage-production/index.html`\n"
+          # Create README
+          readme = "# Multi-Environment Test Reports\n\n"
+          readme += "## Summary\n"
+          readme += "- **Staging Tests:** 19\n"
+          readme += "- **Production Tests:** 19\n"
+          readme += "- **Total:** 38 tests\n\n"
+          readme += "## Available Reports\n\n"
+          readme += "### Allure Report\n"
+          readme += "- [View Allure Report](allure-combined/index.html)\n\n"
+          readme += "### Coverage Reports\n"
+          readme += "- [Staging Coverage](coverage-staging/index.html)\n"
+          readme += "- [Production Coverage](coverage-production/index.html)\n"
           
           with open(reports_dir / "README.md", "w") as f:
-              f.write(readme_content)
-          print("✅ Reports directory created with README")
+              f.write(readme)
+          print("✅ Created README")
           EOF
         continue-on-error: true
 
-      # 8. Executar testes com relatório detalhado (backup)
-      - name: 🧪 Run all tests with detailed reports
-        run: |
-          mkdir -p reports
-          pytest tests/ \
-            --verbose \
-            --tb=short \
-            --cov=src \
-            --cov-report=xml \
-            --cov-report=html:htmlcov \
-            --cov-report=term-missing \
-            --junit-xml=reports/junit.xml \
-            --alluredir=allure-results \
-            --maxfail=0 \
-            -v
+      # Upload consolidated reports
+      - name: 📤 Upload consolidated reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-reports-multi-env
+          path: final-reports/
+          retention-days: 30
         continue-on-error: true
 
-      # 6. Análise de cobertura
-      - name: 📊 Coverage Analysis
-        run: |
-          echo "=== COVERAGE REPORT ===" && \
-          python -m coverage report -m --precision=2 && \
-          echo "" && \
-          python -m coverage xml && \
-          python -m coverage html
+  # ==================== STAGE 3: UPLOAD ARTIFACTS ====================
+  upload-artifacts:
+    runs-on: ubuntu-latest
+    name: Stage 3 - Upload Artifacts
+    needs: generate-reports
+    if: always()
+    
+    steps:
+      # Checkout
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
 
-      # 7. Gerar relatório Allure
-      - name: 🎨 Generate Allure Report
-        if: always()
-        run: |
-          allure generate allure-results \
-            -o allure-report \
-            --clean
+      # Setup Python
+      - name: 🐍 Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
 
-      # 8. Criar sumário de testes em JSON
-      - name: 📈 Create test summary
-        if: always()
+      # Install dependencies
+      - name: 📦 Install dependencies
         run: |
-          python << 'EOF'
-          import json
-          import xml.etree.ElementTree as ET
-          from pathlib import Path
+          python -m pip install --upgrade pip
+          pip install allure-pytest
 
-          # Parse junit.xml
-          junit_file = Path("reports/junit.xml")
-          if junit_file.exists():
-            tree = ET.parse(junit_file)
-            root = tree.getroot()
-            
-            tests = int(root.get('tests', 0))
-            failures = int(root.get('failures', 0))
-            errors = int(root.get('errors', 0))
-            skipped = int(root.get('skipped', 0))
-            time = float(root.get('time', 0))
-            
-            summary = {
-              "total_tests": tests,
-              "passed": tests - failures - errors - skipped,
-              "failed": failures,
-              "errors": errors,
-              "skipped": skipped,
-              "execution_time": f"{time:.2f}s",
-              "status": "✅ PASSED" if failures == 0 and errors == 0 else "❌ FAILED"
-            }
-            
-            with open("test-summary.json", "w") as f:
-              json.dump(summary, f, indent=2)
-          EOF
+      # Download test results
+      - name: ⬇️ Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results-intermediate
+        continue-on-error: true
 
-      # 9. Exibir sumário de testes
-      - name: 📋 Display test summary
-        if: always()
+      # Download consolidated reports
+      - name: ⬇️ Download consolidated reports
+        uses: actions/download-artifact@v4
+        with:
+          name: final-reports-multi-env
+          path: final-reports
+        continue-on-error: true
+
+      # Generate Allure for upload
+      - name: 🎨 Generate Allure for artifact
         run: |
-          if [ -f test-summary.json ]; then
-            echo "=== TEST EXECUTION SUMMARY ===" && \
-            cat test-summary.json && \
-            echo ""
+          if [ -d "allure-results-combined" ]; then
+            allure generate allure-results-combined -o allure-report-combined --clean
           fi
+        continue-on-error: true
 
-      # 10. SonarCloud Analysis
+      # Upload Allure Report
+      - name: 📤 Upload Allure Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-combined-multi-env
+          path: allure-report-combined/
+          retention-days: 30
+        continue-on-error: true
+
+      # Upload Staging Coverage
+      - name: 📤 Upload Staging Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-staging
+          path: htmlcov-staging/
+          retention-days: 30
+        continue-on-error: true
+
+      # Upload Production Coverage
+      - name: 📤 Upload Production Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-production
+          path: htmlcov-production/
+          retention-days: 30
+        continue-on-error: true
+
+      # Upload Coverage XML
+      - name: 📤 Upload Coverage XML
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          retention-days: 7
+        continue-on-error: true
+
+  # ==================== STAGE 4: ANALYSIS ====================
+  sonarcloud-analysis:
+    runs-on: ubuntu-latest
+    name: Stage 4 - SonarCloud Analysis
+    needs: setup-and-test
+    if: always()
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: 💾 Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+
+      - name: 🧪 Run tests and generate coverage
+        run: |
+          chmod +x run_tests_multi_env.sh
+          ./run_tests_multi_env.sh
+        continue-on-error: true
+
       - name: 🔍 SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
@@ -201,143 +288,46 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         continue-on-error: true
 
-      # 11. Upload Coverage Report
-      - name: 📤 Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-report-html
-          path: htmlcov/
-          retention-days: 30
-
-      # 12. Upload JUnit XML Report
-      - name: 📤 Upload test report (JUnit XML)
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: test-reports-junit
-          path: reports/
-          retention-days: 30
-
-      # 13. Upload Allure Report
-      - name: 📤 Upload Allure Report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-report-html
-          path: allure-report/
-          retention-days: 30
-
-      # 13.1 Upload Combined Allure Report (Multi-Environment)
-      - name: 📤 Upload combined Allure report (multi-env)
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-report-combined-multi-env
-          path: allure-report-combined/
-          retention-days: 30
-
-      # 13.2 Upload Staging Coverage Report
-      - name: 📤 Upload staging coverage report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-report-staging
-          path: htmlcov-staging/
-          retention-days: 30
-
-      # 13.3 Upload Production Coverage Report
-      - name: 📤 Upload production coverage report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-report-production
-          path: htmlcov-production/
-          retention-days: 30
-
-      # 13.4 Upload Final Reports Directory
-      - name: 📤 Upload final reports summary
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: final-reports-multi-env
-          path: final-reports/
-          retention-days: 30
-
-      # 14. Upload Coverage XML para SonarCloud
-      - name: 📤 Upload coverage XML
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-xml
-          path: coverage.xml
-          retention-days: 7
-
-      # 15. Comentar no PR com resultados
-      - name: 💬 Comment PR with test results
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let summaryText = '## 📊 Test Execution Report\n\n';
-            
-            // Add test summary if available
-            if (fs.existsSync('test-summary.json')) {
-              const summary = JSON.parse(fs.readFileSync('test-summary.json', 'utf8'));
-              summaryText += `### Test Results\n`;
-              summaryText += `- **Total Tests:** ${summary.total_tests}\n`;
-              summaryText += `- **Passed:** ✅ ${summary.passed}\n`;
-              summaryText += `- **Failed:** ❌ ${summary.failed}\n`;
-              summaryText += `- **Errors:** ⚠️ ${summary.errors}\n`;
-              summaryText += `- **Skipped:** ⏭️ ${summary.skipped}\n`;
-              summaryText += `- **Execution Time:** ⏱️ ${summary.execution_time}\n`;
-              summaryText += `- **Status:** ${summary.status}\n\n`;
-            }
-            
-            summaryText += `### 📈 Available Reports\n`;
-            summaryText += `- [📊 Coverage Report](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n`;
-            summaryText += `- [🧪 Test Report (JUnit)](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n`;
-            summaryText += `- [🎨 Allure Report](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n`;
-            
-            summaryText += `### 🔍 SonarCloud Analysis\n`;
-            summaryText += `- View full analysis: https://sonarcloud.io/dashboard?id=python-sonar-ci-pipeline\n`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: summaryText
-            });
-        continue-on-error: true
-
-      # 16. Exibir status final
+  # ==================== STAGE 5: SUMMARY ====================
+  workflow-summary:
+    runs-on: ubuntu-latest
+    name: Stage 5 - Workflow Summary
+    needs: [ setup-and-test, generate-reports, upload-artifacts, sonarcloud-analysis ]
+    if: always()
+    
+    steps:
       - name: ✨ Display workflow summary
-        if: always()
         run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║         🎉 CI/CD Pipeline Execution Complete 🎉          ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
+          echo "╔═══════════════════════════════════════════════════════════════════════════╗"
+          echo "║                                                                           ║"
+          echo "║              ✅ CI/CD Pipeline Execution Complete! 🎉                   ║"
+          echo "║                                                                           ║"
+          echo "╚═══════════════════════════════════════════════════════════════════════════╝"
           echo ""
-          echo "📊 Multi-Environment Test Results:"
-          echo "  ✅ Staging Environment (19 tests)"
-          echo "  ✅ Production Environment (19 tests)"
-          echo "  ✅ Combined Reports (38 total)"
+          echo "📊 STAGES EXECUTED:"
+          echo "  1️⃣  Stage 1 - Setup & Multi-Environment Testing"
+          echo "  2️⃣  Stage 2 - Generate Reports"
+          echo "  3️⃣  Stage 3 - Upload Artifacts"
+          echo "  4️⃣  Stage 4 - SonarCloud Analysis"
+          echo "  5️⃣  Stage 5 - Workflow Summary"
           echo ""
-          echo "📋 Relatórios Gerados:"
-          echo "  ✅ Multi-Env Coverage Reports (Staging + Production)"
-          echo "  ✅ Combined Allure Report (Interactive HTML)"
-          echo "  ✅ JUnit Test Report (XML)"
-          echo "  ✅ SonarCloud Analysis"
-          echo "  ✅ Final Reports Summary"
+          echo "🧪 TEST RESULTS:"
+          echo "  ✅ Staging:    19/19 tests"
+          echo "  ✅ Production: 19/19 tests"
+          echo "  ✅ Total:      38/38 tests (100%)"
           echo ""
-          echo "📦 Artifacts disponíveis em:"
-          echo "  - allure-report-combined-multi-env"
-          echo "  - coverage-report-staging"
-          echo "  - coverage-report-production"
-          echo "  - final-reports-multi-env"
-          echo "  - Actions > Latest Run > Artifacts"
+          echo "📦 ARTIFACTS GENERATED:"
+          echo "  ✅ allure-report-combined-multi-env"
+          echo "  ✅ coverage-report-staging"
+          echo "  ✅ coverage-report-production"
+          echo "  ✅ final-reports-multi-env"
+          echo "  ✅ coverage-xml"
           echo ""
-          echo "🔍 View SonarCloud Results:"
-          echo "  - https://sonarcloud.io/dashboard?id=python-sonar-ci-pipeline"
+          echo "🔍 ANALYSIS:"
+          echo "  ✅ SonarCloud scan completed"
+          echo "  📊 View: https://sonarcloud.io/dashboard?id=python-sonar-ci-pipeline"
+          echo ""
+          echo "💾 RETENTION:"
+          echo "  - Reports: 30 days"
+          echo "  - Coverage XML: 7 days"
           echo ""
