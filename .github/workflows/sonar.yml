@@ -105,6 +105,12 @@ jobs:
           fi
         continue-on-error: true
 
+      # Generate Dashboard
+      - name: 🎨 Generate Multi-Environment Dashboard
+        run: |
+          python3 generate_dashboard.py dashboard/index.html
+        continue-on-error: true
+
       # Create consolidated reports directory
       - name: 📊 Consolidate all reports
         run: |
@@ -115,6 +121,12 @@ jobs:
           reports_dir = Path("final-reports")
           reports_dir.mkdir(exist_ok=True)
           print("📁 Created final-reports directory")
+          
+          # Copy Dashboard
+          dashboard = Path("dashboard")
+          if dashboard.exists():
+              shutil.copytree(dashboard, reports_dir / "dashboard", dirs_exist_ok=True)
+              print("✅ Copied Dashboard")
           
           # Copy Allure report
           allure_combined = Path("allure-report-combined")
@@ -140,6 +152,8 @@ jobs:
           readme += "- **Production Tests:** 19\n"
           readme += "- **Total:** 38 tests\n\n"
           readme += "## Available Reports\n\n"
+          readme += "### Dashboard\n"
+          readme += "- [View Dashboard](dashboard/index.html)\n\n"
           readme += "### Allure Report\n"
           readme += "- [View Allure Report](allure-combined/index.html)\n\n"
           readme += "### Coverage Reports\n"
@@ -206,6 +220,15 @@ jobs:
           if [ -d "allure-results-combined" ]; then
             allure generate allure-results-combined -o allure-report-combined --clean
           fi
+        continue-on-error: true
+
+      # Upload Dashboard
+      - name: 📤 Upload Test Dashboard
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-multi-env
+          path: dashboard/
+          retention-days: 30
         continue-on-error: true
 
       # Upload Allure Report
@@ -317,6 +340,7 @@ jobs:
           echo "  ✅ Total:      38/38 tests (100%)"
           echo ""
           echo "📦 ARTIFACTS GENERATED:"
+          echo "  ✅ dashboard-multi-env"
           echo "  ✅ allure-report-combined-multi-env"
           echo "  ✅ coverage-report-staging"
           echo "  ✅ coverage-report-production"

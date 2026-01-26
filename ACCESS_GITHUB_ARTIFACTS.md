@@ -37,9 +37,14 @@ Na página do workflow, você verá:
 
 Role a página para baixo até encontrar a seção **"Artifacts"**
 
-### Arquivos Disponíveis
+### Arquivos Disponíveis (6 Artifacts)
 
 ```
+📦 dashboard-multi-env
+   └─ 🎨 Dashboard visual bonito dos testes
+   └─ Resumo executivo + Cards (Staging vs Production)
+   └─ NOVO! Clique para baixar
+
 📦 allure-report-combined-multi-env
    └─ Relatório Allure com 38 testes (Staging + Production)
    └─ Clique para baixar
@@ -65,7 +70,38 @@ Role a página para baixo até encontrar a seção **"Artifacts"**
 
 ## 🚀 Como Usar Cada Artifact
 
-### 🎨 **Allure Report** (Mais Importante!)
+### 🎨 **Dashboard Multi-Environment** (NOVO! 🌟)
+
+#### Baixar:
+1. Clique em `dashboard-multi-env`
+2. Navegador baixará um `.zip`
+3. Extraia em uma pasta
+
+#### Abrir no navegador:
+```bash
+# Depois de extrair
+open dashboard/index.html
+# ou
+firefox dashboard/index.html
+```
+
+**O que você verá:**
+- 🎨 Dashboard visual bonito
+- 📊 Resumo Executivo (38 testes, 100% sucesso)
+- 🟡 Card Staging (19 testes, 100%, 36% cobertura)
+- 🟢 Card Produção (19 testes, 100%, 36% cobertura)
+- 🔗 Links para outros relatórios
+- ⚡ Design responsivo com gradiente
+
+**Por que usar:**
+- Visão rápida do status
+- Interface moderna
+- Perfeito para apresentações
+- Links para detalhes completos
+
+---
+
+### 📈 **Allure Report** (Detalhes Completos)
 
 #### Baixar:
 1. Clique em `allure-report-combined-multi-env`
