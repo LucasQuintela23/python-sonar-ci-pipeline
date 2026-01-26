@@ -96,26 +96,20 @@ jobs:
               print("📊 Copied production coverage report")
           
           # Criar arquivo de resumo
+          readme_content = "# Multi-Environment Test Reports\n\n"
+          readme_content += "## Test Execution Summary\n"
+          readme_content += "- **Staging Tests:** 19\n"
+          readme_content += "- **Production Tests:** 19\n"
+          readme_content += "- **Total:** 38 tests\n\n"
+          readme_content += "## Reports Available\n\n"
+          readme_content += "### Allure Report\n"
+          readme_content += "- Open: `allure-combined/index.html`\n\n"
+          readme_content += "### Coverage Reports\n"
+          readme_content += "- Staging Coverage: `coverage-staging/index.html`\n"
+          readme_content += "- Production Coverage: `coverage-production/index.html`\n"
+          
           with open(reports_dir / "README.md", "w") as f:
-              f.write("""# 📊 Multi-Environment Test Reports
-
-## 🧪 Test Execution Summary
-- **Staging Tests:** 19
-- **Production Tests:** 19
-- **Total:** 38 tests
-
-## 📈 Reports Available
-
-### Allure Report
-- Open: `allure-combined/index.html`
-
-### Coverage Reports
-- Staging Coverage: `coverage-staging/index.html`
-- Production Coverage: `coverage-production/index.html`
-
-## 🎨 Dashboard
-View the complete multi-environment dashboard in the artifacts.
-""")
+              f.write(readme_content)
           print("✅ Reports directory created with README")
           EOF
         continue-on-error: true
