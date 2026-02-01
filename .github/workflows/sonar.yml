@@ -304,7 +304,16 @@ jobs:
           ./run_tests_multi_env.sh
         continue-on-error: true
 
-      - name: 🔍 SonarCloud Scan
+      - name: � Normalize coverage paths for Sonar
+        run: |
+          if [ -f coverage.xml ]; then
+            echo "Normalizing coverage paths for SonarScanner..."
+            sed -i "s|${GITHUB_WORKSPACE}/src|/usr/src/src|g" coverage.xml || true
+            sed -i "s|${GITHUB_WORKSPACE}|/usr/src|g" coverage.xml || true
+          fi
+        continue-on-error: true
+
+      - name: �🔍 SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
