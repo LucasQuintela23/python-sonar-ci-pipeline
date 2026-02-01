@@ -113,3 +113,38 @@ class CreditAnalysis:
                 base_score = 200
         
         return base_score
+
+
+# ============================================================
+# Demonstrações intencionais para palestra (SonarQube)
+# ============================================================
+
+def demo_unused_variable(value: int) -> int:
+    """Exemplo: variável não utilizada (code smell)."""
+    unused_value = value * 2
+    return value
+
+
+def demo_redundant_boolean(flag: bool) -> bool:
+    """Exemplo: comparação booleana redundante (code smell)."""
+    if flag == True:
+        return True
+    return False
+
+
+def demo_resource_leak(path: str) -> int:
+    """Exemplo: arquivo aberto sem fechamento adequado (code smell)."""
+    file_handle = open(path, "w")
+    file_handle.write("demo")
+    return 0
+
+
+def demo_hardcoded_password() -> str:
+    """Exemplo: credencial hardcoded (security hotspot)."""
+    password = "demo_password"
+    return password
+
+
+def demo_eval(user_input: str):
+    """Exemplo: uso de eval em entrada externa (security hotspot)."""
+    return eval(user_input)
