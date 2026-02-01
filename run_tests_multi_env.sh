@@ -19,9 +19,19 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Criar ou ativar ambiente virtual
+PYTHON_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+else
+  echo "❌ Python não encontrado no PATH"
+  exit 127
+fi
+
 if [ ! -d "venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv venv
+  echo "Creating virtual environment..."
+  "$PYTHON_BIN" -m venv venv
 fi
 
 source venv/bin/activate
@@ -112,9 +122,14 @@ echo "==========================================${NC}"
 echo ""
 
 # Gerar relatório Allure combinado
-allure generate "$COMBINED_RESULTS" -o allure-report-combined --clean
+if command -v allure &> /dev/null; then
+  allure generate "$COMBINED_RESULTS" -o allure-report-combined --clean
+  echo -e "${GREEN}✅ Reports generated successfully!${NC}"
+else
+  echo "⚠️  Allure CLI not found - skipping combined report generation"
+  echo "To generate reports locally, install Allure CLI: https://docs.qameta.io/allure/"
+fi
 
-echo -e "${GREEN}✅ Reports generated successfully!${NC}"
 echo ""
 
 # ============================================

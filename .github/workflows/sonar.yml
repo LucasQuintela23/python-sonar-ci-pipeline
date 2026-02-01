@@ -79,6 +79,12 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: 🧰 Install Allure CLI
+        run: |
+          curl -Ls https://github.com/allure-framework/allure2/releases/download/2.27.0/allure-2.27.0.tgz -o allure.tgz
+          tar -xzf allure.tgz
+          echo "$PWD/allure-2.27.0/bin" >> $GITHUB_PATH
+
       # Install dependencies
       - name: 📦 Install dependencies
         run: |
@@ -108,13 +114,13 @@ jobs:
       # Generate Dashboard
       - name: 🎨 Generate Multi-Environment Dashboard
         run: |
-          python3 generate_dashboard.py dashboard/index.html
+          python generate_dashboard.py dashboard/index.html
         continue-on-error: true
 
       # Create consolidated reports directory
       - name: 📊 Consolidate all reports
         run: |
-          python3 << 'EOF'
+          python << 'EOF'
           import shutil
           from pathlib import Path
           
@@ -192,6 +198,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
+
+      - name: 🧰 Install Allure CLI
+        run: |
+          curl -Ls https://github.com/allure-framework/allure2/releases/download/2.27.0/allure-2.27.0.tgz -o allure.tgz
+          tar -xzf allure.tgz
+          echo "$PWD/allure-2.27.0/bin" >> $GITHUB_PATH
 
       # Install dependencies
       - name: 📦 Install dependencies
